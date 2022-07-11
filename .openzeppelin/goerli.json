@@ -1,0 +1,126 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xA7E36F3152Dc8c57704B475e3365B4d185d871Ae",
+    "txHash": "0xf81119ab05d947a0c9e6837e471bf967b5fde45620d4f1c2df6b424dc8e5bad2"
+  },
+  "proxies": [
+    {
+      "address": "0x61b14d9a9F205c03bd5c4d10053D9b3100c55899",
+      "txHash": "0x8f5dd7deaaafd608978bd7be591ad91be2b98920271e3a65ee1b475e2349f510",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "6821ac0477a7cfb6948570cd6d5adf3052510948ce19db96881aaea35e44d121": {
+      "address": "0x678F84cFe6d352623C05Cb1eF1371C8CcC2e3073",
+      "txHash": "0xddbd6f0b578f4d5633e4542ee6be57ad5ed138f58460a9504c8344e3ce9b60e6",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "label": "depositsCounter",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "HaqqVesting",
+            "src": "src/contracts/HaqqVesting.sol:36"
+          },
+          {
+            "label": "deposits",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)402_storage))",
+            "contract": "HaqqVesting",
+            "src": "src/contracts/HaqqVesting.sol:45"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)402_storage))": {
+            "label": "mapping(address => mapping(uint256 => struct HaqqVesting.Deposit))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Deposit)402_storage)": {
+            "label": "mapping(uint256 => struct HaqqVesting.Deposit)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Deposit)402_storage": {
+            "label": "struct HaqqVesting.Deposit",
+            "members": [
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sumInWeiDeposited",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "sumPaidAlready",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        }
+      }
+    }
+  }
+}
