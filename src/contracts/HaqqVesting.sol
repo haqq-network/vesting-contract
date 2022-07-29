@@ -51,6 +51,7 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
     /// @dev Function to make a new deposit.
     /// @param _beneficiaryAddress address that will receive payments from this deposit
     function deposit(address _beneficiaryAddress) external payable nonReentrant returns (bool success){
+        require(_beneficiaryAddress != address(0), "beneficiary address cannot be 0");
         // new deposit id for this deposit
         uint256 depositId = depositsCounter[_beneficiaryAddress] + 1;
         require(depositId <= MAX_DEPOSITS, "Max deposit number for this address reached");
@@ -184,7 +185,7 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
 
     /// @dev Function that transfers ownership of deposits to new address
     /// @param _newBeneficiaryAddress beneficiary address
-    function transferDepositRights(address _newBeneficiaryAddress) external {
+    function transferDepositRights(address _newBeneficiaryAddress) external nonReentrant {
         require(depositsCounter[msg.sender] > 0, "No deposits for this address");
         require(depositsCounter[_newBeneficiaryAddress] == 0, "Only empty account is allowed");
 

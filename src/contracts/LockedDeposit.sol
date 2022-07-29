@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
@@ -125,7 +127,7 @@ contract LockedDeposit is ILockedDeposit {
     bytes32 private DOMAIN_SEPARATOR;
 
     //    uint8 public MAINNET_CHAIN_ID = 1; // TODO: production
-    uint8 public MAINNET_CHAIN_ID = 3; // for test net ropsten
+    uint8 public constant MAINNET_CHAIN_ID = 3; // for test net ropsten
 
     /*=========== EIP-712 types ============*/
     struct EIP712Domain {
@@ -152,11 +154,12 @@ contract LockedDeposit is ILockedDeposit {
 
     LockedDeposit private _thisAsOperator;
 
-    uint256 chainIdPublic;
+    uint256 immutable chainIdPublic;
 
-    address public vestingContractAddress;
+    address public immutable vestingContractAddress;
 
     constructor(string memory _name, address _vestingContract) {
+        require(_vestingContract != address(0));
 
         vestingContractAddress = _vestingContract;
 
@@ -183,24 +186,6 @@ contract LockedDeposit is ILockedDeposit {
     modifier onlyCreatedStatus(ApproveDepositPermit calldata permit) {
         bytes32 hash = hashStruct(permit);
         require(permitsStatus[hash] == PermitStatus.Created, "LockedDeposit: state mismatch, only created status.");
-        _;
-    }
-
-    modifier onlyInWaitPermitSignatureStatus(ApproveDepositPermit calldata permit) {
-        bytes32 hash = hashStruct(permit);
-        require(permitsStatus[hash] == PermitStatus.WaitPermitSignature, "LockedDeposit: state mismatch, only in wait permit signature status.");
-        _;
-    }
-
-    modifier onlyInPermittedStatus(ApproveDepositPermit calldata permit) {
-        bytes32 hash = hashStruct(permit);
-        require(permitsStatus[hash] == PermitStatus.Permitted, "LockedDeposit: state mismatch, only in permitted status.");
-        _;
-    }
-
-    modifier onlyInClaimedStatus(ApproveDepositPermit calldata permit) {
-        bytes32 hash = hashStruct(permit);
-        require(permitsStatus[hash] == PermitStatus.Claimed, "LockedDeposit: state mismatch, only in claimed status.");
         _;
     }
 
@@ -270,7 +255,12 @@ contract LockedDeposit is ILockedDeposit {
             abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hash)
         );
 
-        address signer = ecrecover(digest, signature.v, signature.r, signature.s);
+        // check signature
+        (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(digest, signature.v, signature.r, signature.s);
+        require(
+            error == ECDSA.RecoverError.NoError,
+            "Error while recovering signer address"
+        );
 
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             require(permit.investor == signer, "LockedDeposit: permit is not signed by investor.");
@@ -283,30 +273,10 @@ contract LockedDeposit is ILockedDeposit {
     }
 
     /**
-     * @dev check if permit is signed by msg.sender
-     * @param permit - permit to check
-     * @param signature - signature of permit
-     */
-    modifier checkSigner(
-        ApproveDepositPermit calldata permit, Signature calldata signature
-    ) {
-        // EIP712 encoded
-        bytes32 hash = hashStruct(permit);
-        bytes32 digest =
-        keccak256(
-            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hash)
-        );
-
-        address signer = ecrecover(digest, signature.v, signature.r, signature.s);
-        require(signer == msg.sender, "Signer mismatch.");
-        _;
-    }
-
-    /**
      * @dev initialize a new deal for investor and team
      * @param permit - permit to initialize
      */
-    function createDeal(ApproveDepositPermit memory permit) public {
+    function createDeal(ApproveDepositPermit memory permit) external {
         require(permit.amount > 0, "LockedDeposit: amount can't be zero.");
         require(permit.chainId > 0, "LockedDeposit: chain id can't be zero.");
         require(permit.investor != address(0), "LockedDeposit: investors address invalid.");
@@ -334,9 +304,10 @@ contract LockedDeposit is ILockedDeposit {
      * @dev deposit required amount of funds in the locked deposit contract
      * @param permit - permit to deposit
      */
-    function deposit(ApproveDepositPermit calldata permit) payable onlyCreatedStatus(permit) public {
+    function deposit(ApproveDepositPermit calldata permit) payable onlyCreatedStatus(permit) external {
         bytes32 hash = hashStruct(permit);
 
+        permitsStatus[hash] = PermitStatus.WaitPermitSignature;
         // mainnet so we proceed with USDC deposit from investor
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             require(permit.investor == msg.sender, "LockedDeposit: only investor allowed.");
@@ -344,14 +315,12 @@ contract LockedDeposit is ILockedDeposit {
             // check allowance
             require(token.allowance(permit.investor, address(_thisAsOperator)) >= permit.amount, "LockedDeposit: allowance amount is not enough.");
             _safeTransferFrom(token, permit.investor, address(_thisAsOperator), permit.amount);
-            permitsStatus[hash] = PermitStatus.WaitPermitSignature;
             return;
         }
 
         require(permit.team == msg.sender, "LockedDeposit: only team allowed.");
         require(msg.value >= permit.amount, "LockedDeposit: amount less than expected.");
 
-        permitsStatus[hash] = PermitStatus.WaitPermitSignature;
     }
 
     /**
@@ -360,14 +329,10 @@ contract LockedDeposit is ILockedDeposit {
      * @param signature - signature of permit
      */
     function approve(ApproveDepositPermit calldata permit, Signature calldata signature)
-    public
-        // TODO: refactor check
-        //    onlyInWaitPermitSignatureStatus(permit)
-        //    checkSigner(permit, signature)
+    external
     {
         bytes32 hash = hashStruct(permit);
         require(permitsStatus[hash] != PermitStatus.Permitted, "LockedDeposit: permit already approved.");
-        // TODO: check funds amount
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             require(permit.team == msg.sender, "LockedDeposit: only team can approve permit.");
             permitsStatus[hash] = PermitStatus.Permitted;
@@ -387,40 +352,38 @@ contract LockedDeposit is ILockedDeposit {
      */
     function claimDeposit(ApproveDepositPermit calldata permit, Signature calldata signature)
     requireApproveDepositPermit(permit, signature)
-    public {
+    external {
         bytes32 hash = hashStruct(permit);
         require(permitsStatus[hash] != PermitStatus.Claimed, "LockedDeposit: permit already claimed.");
+
+        permitsStatus[hash] = PermitStatus.Claimed;
 
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.team, permit.amount);
-            permitsStatus[hash] = PermitStatus.Claimed;
             return;
         }
 
         IVesting vestingContract = IVesting(permit.vestingContractAddress);
         require(vestingContract.deposit{value : permit.amount}(permit.investor), "LockedDeposit: failed to send deposit.");
-
-        permitsStatus[hash] = PermitStatus.Claimed;
     }
 
     /**
      * @dev claim deposit if permit deadline has passed
      * @param permit - permit to withdraw
      */
-    function claimOnDeadline(ApproveDepositPermit calldata permit) public onlyExpiredDeadline(permit) {
+    function claimOnDeadline(ApproveDepositPermit calldata permit) external onlyExpiredDeadline(permit) {
         bytes32 hash = hashStruct(permit);
         require(permitsStatus[hash] != PermitStatus.Refunded, "VerifiedDeposit: permit already refunded.");
+        permitsStatus[hash] = PermitStatus.Refunded;
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.investor, permit.amount);
-            permitsStatus[hash] = PermitStatus.Refunded;
             return;
         }
 
         (bool sent,) = payable(permit.team).call{value : permit.amount}("");
         require(sent, "LockedDeposit: failed to send ether on claim on deadline.");
-        permitsStatus[hash] = PermitStatus.Refunded;
     }
 
     /**
