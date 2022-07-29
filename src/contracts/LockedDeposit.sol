@@ -408,7 +408,11 @@ contract LockedDeposit is ILockedDeposit {
             abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hash)
         );
 
-        address signer = ecrecover(digest, signature.v, signature.r, signature.s);
+        (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(digest, signature.v, signature.r, signature.s);
+        require(
+            error == ECDSA.RecoverError.NoError,
+            "Error while recovering signer address"
+        );
         return signer;
     }
 
