@@ -158,6 +158,11 @@ contract LockedDeposit is ILockedDeposit {
 
     address public immutable vestingContractAddress;
 
+    event CreateDeal(address indexed investor, address indexed team, uint256 amount, uint256 deadline);
+    event Deposited(address indexed investor, address indexed team, uint256 amount, uint256 deadline);
+    event DepositApproved(address indexed investor, address indexed team, uint256 amount, uint256 deadline);
+    event DepositClaimed(address indexed investor, address indexed team, uint256 amount, uint256 deadline);
+
     constructor(string memory _name, address _vestingContract) {
         require(_vestingContract != address(0));
 
@@ -297,6 +302,7 @@ contract LockedDeposit is ILockedDeposit {
 
         // updated status
         permitsStatus[hash] = PermitStatus.Created;
+        emit CreateDeal(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
 
@@ -315,12 +321,13 @@ contract LockedDeposit is ILockedDeposit {
             // check allowance
             require(token.allowance(permit.investor, address(_thisAsOperator)) >= permit.amount, "LockedDeposit: allowance amount is not enough.");
             _safeTransferFrom(token, permit.investor, address(_thisAsOperator), permit.amount);
+            emit Deposited(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         require(permit.team == msg.sender, "LockedDeposit: only team allowed.");
         require(msg.value >= permit.amount, "LockedDeposit: amount less than expected.");
-
+        emit Deposited(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
@@ -337,11 +344,13 @@ contract LockedDeposit is ILockedDeposit {
             require(permit.team == msg.sender, "LockedDeposit: only team can approve permit.");
             permitsStatus[hash] = PermitStatus.Permitted;
             permitSignatures[hash] = signature;
+            emit DepositApproved(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         } else {
             require(permit.investor == msg.sender, "LockedDeposit: only investor can approve permit.");
             permitsStatus[hash] = PermitStatus.Permitted;
             permitSignatures[hash] = signature;
+            emit DepositApproved(permit.investor, permit.team, permit.amount, permit.deadline);
         }
     }
 
@@ -361,11 +370,13 @@ contract LockedDeposit is ILockedDeposit {
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.team, permit.amount);
+            emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         IVesting vestingContract = IVesting(permit.vestingContractAddress);
         require(vestingContract.deposit{value : permit.amount}(permit.investor), "LockedDeposit: failed to send deposit.");
+        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
@@ -379,11 +390,13 @@ contract LockedDeposit is ILockedDeposit {
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.investor, permit.amount);
+            emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         (bool sent,) = payable(permit.team).call{value : permit.amount}("");
         require(sent, "LockedDeposit: failed to send ether on claim on deadline.");
+        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
