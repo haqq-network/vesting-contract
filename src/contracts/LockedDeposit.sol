@@ -314,6 +314,7 @@ contract LockedDeposit is ILockedDeposit {
         bytes32 hash = hashStruct(permit);
 
         permitsStatus[hash] = PermitStatus.WaitPermitSignature;
+        emit Deposited(permit.investor, permit.team, permit.amount, permit.deadline);
         // mainnet so we proceed with USDC deposit from investor
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             require(permit.investor == msg.sender, "LockedDeposit: only investor allowed.");
@@ -321,13 +322,11 @@ contract LockedDeposit is ILockedDeposit {
             // check allowance
             require(token.allowance(permit.investor, address(_thisAsOperator)) >= permit.amount, "LockedDeposit: allowance amount is not enough.");
             _safeTransferFrom(token, permit.investor, address(_thisAsOperator), permit.amount);
-            emit Deposited(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         require(permit.team == msg.sender, "LockedDeposit: only team allowed.");
         require(msg.value >= permit.amount, "LockedDeposit: amount less than expected.");
-        emit Deposited(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
@@ -366,17 +365,15 @@ contract LockedDeposit is ILockedDeposit {
         require(permitsStatus[hash] != PermitStatus.Claimed, "LockedDeposit: permit already claimed.");
 
         permitsStatus[hash] = PermitStatus.Claimed;
-
+        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.team, permit.amount);
-            emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         IVesting vestingContract = IVesting(permit.vestingContractAddress);
         require(vestingContract.deposit{value : permit.amount}(permit.investor), "LockedDeposit: failed to send deposit.");
-        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
@@ -387,16 +384,15 @@ contract LockedDeposit is ILockedDeposit {
         bytes32 hash = hashStruct(permit);
         require(permitsStatus[hash] != PermitStatus.Refunded, "VerifiedDeposit: permit already refunded.");
         permitsStatus[hash] = PermitStatus.Refunded;
+        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
         if (chainIdPublic == MAINNET_CHAIN_ID) {
             IERC20 token = IERC20(permit.currency);
             _safeTransfer(token, permit.investor, permit.amount);
-            emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
             return;
         }
 
         (bool sent,) = payable(permit.team).call{value : permit.amount}("");
         require(sent, "LockedDeposit: failed to send ether on claim on deadline.");
-        emit DepositClaimed(permit.investor, permit.team, permit.amount, permit.deadline);
     }
 
     /**
