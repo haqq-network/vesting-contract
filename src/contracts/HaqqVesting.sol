@@ -50,32 +50,30 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
 
     /// @dev Function to make a new deposit.
     /// @param _beneficiaryAddress address that will receive payments from this deposit
-    function deposit(address _beneficiaryAddress) external payable nonReentrant returns (bool success){
+    function deposit(address _beneficiaryAddress) external payable nonReentrant returns (bool success) {
+        require(_beneficiaryAddress != address(0), "HaqqVesting: beneficiary address is zero");
+        require(msg.value > 0, "HaqqVesting: deposit sum is zero");
         // new deposit id for this deposit
-        uint256 depositId = depositsCounter[_beneficiaryAddress] + 1;
+        uint256 depositId = ++depositsCounter[_beneficiaryAddress];
         require(depositId <= MAX_DEPOSITS, "Max deposit number for this address reached");
 
         // make the first withdrawal
         // if beneficiary address can not receive ETH, there will be no deposit for this address
         uint256 firstWithdrawalAmount = msg.value / NUMBER_OF_PAYMENTS;
-        (bool sent, bytes memory data) = payable(_beneficiaryAddress).call{value : firstWithdrawalAmount}("");
+        (bool sent,) = payable(_beneficiaryAddress).call{value : firstWithdrawalAmount}("");
         require(sent, "Failed to send Ether");
+        emit WithdrawalMade(_beneficiaryAddress, firstWithdrawalAmount, msg.sender);
 
         // after the first withdrawal succeeded, make records to this deposit:
-
-        depositsCounter[_beneficiaryAddress] = depositId;
-
-        deposits[_beneficiaryAddress][depositId].sumPaidAlready = deposits[_beneficiaryAddress][depositId].sumPaidAlready + firstWithdrawalAmount;
-        deposits[_beneficiaryAddress][depositId].timestamp = block.timestamp;
-        deposits[_beneficiaryAddress][depositId].sumInWeiDeposited = msg.value;
-
+        deposits[_beneficiaryAddress][depositId] = Deposit({timestamp : block.timestamp, sumInWeiDeposited : msg.value,
+        sumPaidAlready : firstWithdrawalAmount});
         // emit event:
 
         emit DepositMade(
             _beneficiaryAddress,
-            depositsCounter[_beneficiaryAddress],
-            deposits[_beneficiaryAddress][depositId].timestamp,
-            deposits[_beneficiaryAddress][depositId].sumInWeiDeposited,
+            depositId,
+            block.timestamp,
+            msg.value,
             msg.sender
         );
 
@@ -84,29 +82,26 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
 
     /// @dev Total payouts unlocked in the elapsed time.
     /// @dev One payment is unlocked immediately
+    /// @param _beneficiaryAddress address that will receive payments from this deposit
     function totalPayoutsUnblocked(address _beneficiaryAddress, uint256 _depositId) public view returns (uint256){
-
         require(deposits[_beneficiaryAddress][_depositId].timestamp > 0, "No deposit with this ID for this address");
 
-        /// Time in seconds elapsed after the deposit was placed
-        uint256 depositAge = block.timestamp - deposits[_beneficiaryAddress][_depositId].timestamp;
-
-        uint256 totalPayoutsUnblocked_ = (depositAge / TIME_BETWEEN_PAYMENTS) + 1;
-        if (totalPayoutsUnblocked_ > NUMBER_OF_PAYMENTS) {
-            totalPayoutsUnblocked_ = NUMBER_OF_PAYMENTS;
-        }
-
-        return totalPayoutsUnblocked_;
+        uint256 totalPayoutsUnblocked_ = ((block.timestamp - deposits[_beneficiaryAddress][_depositId].timestamp) /
+        TIME_BETWEEN_PAYMENTS) + 1;
+        return totalPayoutsUnblocked_ > NUMBER_OF_PAYMENTS ? NUMBER_OF_PAYMENTS : totalPayoutsUnblocked_;
     }
 
     /// @dev Returns amount (in wei on Ethereum) that should be unlocked in one time period for the given deposit
     /// @param _depositId deposit id
+    /// @param _beneficiaryAddress address of beneficiary
+    /// @return amount (in wei on Ethereum) that should be unlocked in one time period for the given deposit
     function amountForOneWithdrawal(address _beneficiaryAddress, uint256 _depositId) public view returns (uint256){
         return deposits[_beneficiaryAddress][_depositId].sumInWeiDeposited / NUMBER_OF_PAYMENTS;
     }
 
     /// @dev Returns amount available for withdrawal for given deposit at this time
-    /// @param _depositId deposit id
+    /// @param _depositId deposit id to check
+    /// @param _beneficiaryAddress address of beneficiary
     function amountToWithdrawNow(address _beneficiaryAddress, uint256 _depositId) public view returns (uint256){
 
         uint256 totalAmount;
@@ -128,6 +123,7 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
     );
 
     /// @dev Returns sum currently available for withdrawal from all deposits for a given address
+    /// @param _beneficiaryAddress address to check
     function calculateAvailableSumForAllDeposits(address _beneficiaryAddress) external view returns (uint256){
 
         uint256 sum;
@@ -170,7 +166,7 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
         // payable(_beneficiaryAddress).transfer(sumToWithdraw);
         // changed to .call
         // see https://solidity-by-example.org/sending-ether/
-        (bool sent, bytes memory data) = payable(_beneficiaryAddress).call{value : sumToWithdraw}("");
+        (bool sent,) = payable(_beneficiaryAddress).call{value : sumToWithdraw}("");
         require(sent, "Failed to send Ether");
 
         emit WithdrawalMade(
@@ -190,17 +186,17 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
 
         for (uint256 depositId = 1; depositId <= depositsCounter[msg.sender]; depositId ++) {
             deposits[_newBeneficiaryAddress][depositId] = deposits[msg.sender][depositId];
-            deposits[msg.sender][depositId] = Deposit(0, 0, 0);
+            delete deposits[msg.sender][depositId];
             emit DepositMade(
                 _newBeneficiaryAddress,
-                depositsCounter[_newBeneficiaryAddress],
+                depositId,
                 deposits[_newBeneficiaryAddress][depositId].timestamp,
                 deposits[_newBeneficiaryAddress][depositId].sumInWeiDeposited,
                 msg.sender
             );
         }
         depositsCounter[_newBeneficiaryAddress] = depositsCounter[msg.sender];
-        depositsCounter[msg.sender] = 0;
+        delete depositsCounter[msg.sender];
     }
 
 }
