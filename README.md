@@ -36,11 +36,12 @@ later, so we can have another smart contract under the hood, using the same prox
 Address of the contract working behind the proxy we can find in the event ( ```Upgraded``` ) that was emitted when proxy
 contract was deployed or upgraded, for example using ```Logs``` tab on transaction data page on Etherscan.
 
-You can see smart contract's function description on [Contract Docs](/directContractDocs) tab.
-
-You can use interface on tabs [Contract Upgradeable (Proxy)](/proxyContract)
-and [Direct Contract](http://localhost:3000/directContract)
+You can view interface and functions using following links (all links below using default PORT=3000):
+- [Contract Upgradeable (Proxy)](http://localhost:3000/proxyContract) 
+- [Direct Contract](http://localhost:3000/directContract)
 to interact with smart contracts.
+
+Documentation also available at [Contract Docs](http://localhost:3000/directContractDocs)
 
 For the regular (not upgradeable) smart contract you can also use interface provided by Etherscan.
 
