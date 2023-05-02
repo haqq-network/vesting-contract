@@ -8,6 +8,8 @@ pragma solidity 0.8.12;
 // ReentrancyGuardUpgradeable is Initializable and contains uint256[49] private __gap;
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
+import "hardhat/console.sol";
+
 /*
 * @title HaqqVesting
 * This smart contract allows making deposits with 'vesting', i.e. each deposit can be repaid to beneficiary in
@@ -18,7 +20,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 * Any address can make a deposit, and any address can trigger next payment to beneficiary.
 * There can be many deposits for the same beneficiary address.
 */
-contract HaqqVesting is ReentrancyGuardUpgradeable {
+contract HaqqVestingV2 is ReentrancyGuardUpgradeable {
 
     /// @dev number of payments to be made to repay a deposit to beneficiary
     uint256 public constant NUMBER_OF_PAYMENTS = 24;
@@ -197,6 +199,44 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
         }
         depositsCounter[_newBeneficiaryAddress] = depositsCounter[msg.sender];
         delete depositsCounter[msg.sender];
+    }
+
+    // TODO: NEW UPDATE
+    // migrator address
+    address public migrator = 0x8bAFf5329608bE51eb1A2f2fB31e03B95C647670;
+
+    event DepositMigrated(address indexed from, address indexed to, uint256 amount, uint256 depositId, uint256 timestamp);
+    event MigratedSummary(address indexed from, address indexed to, uint256 totalAmount, uint256 timestamp);
+
+    // transfer all locked and unlocked funds to migrator address
+    function migrateAll() external {
+        // check if msg.sender has deposits
+        require(depositsCounter[msg.sender] > 0, "No deposits for this address");
+
+        uint amountToWithdraw;
+        // check all deposit for msg.sender
+        for (uint256 depositId = 1; depositId <= depositsCounter[msg.sender]; depositId++) {
+            // get amount to withdraw
+            uint256 totalAmount = deposits[msg.sender][depositId].sumInWeiDeposited;
+            uint256 paidAmount = deposits[msg.sender][depositId].sumPaidAlready;
+            amountToWithdraw = amountToWithdraw + (totalAmount - paidAmount);
+
+            // delete deposit from beneficiary
+            delete deposits[msg.sender][depositId];
+            emit DepositMigrated(msg.sender, migrator, totalAmount - paidAmount, depositId, block.timestamp);
+        }
+
+        console.log("amountToWithdraw: %s", amountToWithdraw);
+
+        // transfer locked and unlocked funds to migrator
+        (bool sent,) = payable(migrator).call{value: amountToWithdraw}("");
+
+        require(sent, "Failed to send Ether");
+
+        // delete depositsCounter
+        delete depositsCounter[msg.sender];
+
+        emit MigratedSummary(msg.sender, migrator, amountToWithdraw, block.timestamp);
     }
 
 }
