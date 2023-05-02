@@ -92,7 +92,7 @@
             "label": "deposits",
             "offset": 0,
             "slot": "52",
-            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)8543_storage))",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)479_storage))",
             "contract": "HaqqVesting",
             "src": "src/contracts/HaqqVesting.sol:40"
           }
@@ -110,7 +110,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)8543_storage))": {
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Deposit)479_storage))": {
             "label": "mapping(address => mapping(uint256 => struct HaqqVesting.Deposit))",
             "numberOfBytes": "32"
           },
@@ -118,11 +118,11 @@
             "label": "mapping(address => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(Deposit)8543_storage)": {
+          "t_mapping(t_uint256,t_struct(Deposit)479_storage)": {
             "label": "mapping(uint256 => struct HaqqVesting.Deposit)",
             "numberOfBytes": "32"
           },
-          "t_struct(Deposit)8543_storage": {
+          "t_struct(Deposit)479_storage": {
             "label": "struct HaqqVesting.Deposit",
             "members": [
               {

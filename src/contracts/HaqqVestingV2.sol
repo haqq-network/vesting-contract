@@ -8,8 +8,6 @@ pragma solidity 0.8.12;
 // ReentrancyGuardUpgradeable is Initializable and contains uint256[49] private __gap;
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 /*
 * @title HaqqVesting
 * This smart contract allows making deposits with 'vesting', i.e. each deposit can be repaid to beneficiary in
@@ -225,8 +223,6 @@ contract HaqqVestingV2 is ReentrancyGuardUpgradeable {
             delete deposits[msg.sender][depositId];
             emit DepositMigrated(msg.sender, migrator, totalAmount - paidAmount, depositId, block.timestamp);
         }
-
-        console.log("amountToWithdraw: %s", amountToWithdraw);
 
         // transfer locked and unlocked funds to migrator
         (bool sent,) = payable(migrator).call{value: amountToWithdraw}("");
