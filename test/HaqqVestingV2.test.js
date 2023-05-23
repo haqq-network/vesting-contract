@@ -7,63 +7,39 @@ chai.use(solidity);
 const contractName = 'HaqqVestingV2';
 
 describe("HaqqVestingV2", function () {
-    let HaqqVestingV2, haqqVesting, owner, addr1, addr2;
+    let HaqqVestingV2, haqqVesting, owner, addr1;
 
     beforeEach(async () => {
         HaqqVestingV2 = await ethers.getContractFactory(contractName);
-        [owner, addr1, addr2] = await ethers.getSigners();
+        [owner, addr1] = await ethers.getSigners();
         haqqVesting = await HaqqVestingV2.deploy();
         await haqqVesting.deployed();
     });
 
-    describe("migrateAll()", () => {
-        it("should migrate all deposits and their remaining funds to the migrator address", async () => {
-            // get migrator address
-            const migratorAddress = await haqqVesting.migrator();
-
-            // Make deposits to addr1
-            await haqqVesting.connect(addr1).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-            await haqqVesting.connect(addr1).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-
-            console.log("migrator balance", await ethers.provider.getBalance(migratorAddress));
-
-            // Migrate all deposits to the migrator address
-            await haqqVesting.connect(addr1).migrateAll();
-
-            // Check that all deposits are removed from addr1
-            expect(await haqqVesting.depositsCounter(addr1.address)).to.equal(0);
-
-            // Check that the funds have been transferred to the migrator address
-            const migratorBalance = await ethers.provider.getBalance(migratorAddress);
-            expect(migratorBalance).to.be.equal(ethers.utils.parseUnits("1916666666666666668", "wei"));
-        });
-
-        it("should migrate deposit that are vested half of time", async () => {
+    describe("migrate update", () => {
+        it("should calculate remaining tokens for all deposits correctly", async function () {
             const numberOfPayments = (await haqqVesting.NUMBER_OF_PAYMENTS()).toNumber();
             const timeBetweenPayments = (await haqqVesting.TIME_BETWEEN_PAYMENTS()).toNumber();
+            // Setup by creating a few deposits.
+            await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
+            await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
+
+            // Calculate the expected initial remaining balance.
+            const expectedInitialRemaining = ethers.utils.parseEther("2").sub(ethers.utils.parseEther("2").div(numberOfPayments));
+
+            // Check that the total remaining balance is correct.
+            let totalRemaining = await haqqVesting.calculateTotalRemainingForAllDeposits(addr1.address);
+            expect(totalRemaining.sub(expectedInitialRemaining).abs().lte(1)).to.be.true;  // <-- Change here
+
             await ethers.provider.send('evm_increaseTime', [timeBetweenPayments]);
             await ethers.provider.send('evm_mine');
 
-            // get migrator address
-            const migratorAddress = await haqqVesting.migrator();
+            // Now, let's simulate some withdrawals
+            await haqqVesting.connect(owner).withdraw(addr1.address);
 
-            // Make deposits to addr1
-            await haqqVesting.connect(addr1).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-            await haqqVesting.connect(addr1).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-
-            // wait for half of time
-            await ethers.provider.send('evm_increaseTime', [timeBetweenPayments * numberOfPayments / 2]);
-            await ethers.provider.send('evm_mine');
-
-            // Migrate all deposits to the migrator address
-            await haqqVesting.connect(addr1).migrateAll();
-
-            // Check that all deposits are removed from addr1
-            expect(await haqqVesting.depositsCounter(addr1.address)).to.equal(0);
-
-            // Check that the funds have been transferred to the migrator address
-            const migratorBalance = await ethers.provider.getBalance(migratorAddress);
-            expect(migratorBalance).to.be.equal(ethers.utils.parseUnits("3833333333333333336", "wei"));
+            // Check that the total remaining balance is updated correctly.
+            totalRemaining = await haqqVesting.calculateTotalRemainingForAllDeposits(addr1.address);
+            expect(totalRemaining).to.be.below(expectedInitialRemaining);
         });
     });
 });

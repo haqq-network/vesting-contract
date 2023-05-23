@@ -200,39 +200,17 @@ contract HaqqVestingV2 is ReentrancyGuardUpgradeable {
     }
 
     // TODO: NEW UPDATE
-    // migrator address
-    address public migrator = 0x8bAFf5329608bE51eb1A2f2fB31e03B95C647670;
+    /// @dev Returns the total amount of tokens remaining for withdrawal from all deposits for a given address
+    function calculateTotalRemainingForAllDeposits(address _beneficiaryAddress) external view returns (uint256){
+        uint256 totalRemaining = 0;
 
-    event DepositMigrated(address indexed from, address indexed to, uint256 amount, uint256 depositId, uint256 timestamp);
-    event MigratedSummary(address indexed from, address indexed to, uint256 totalAmount, uint256 timestamp);
-
-    // transfer all locked and unlocked funds to migrator address
-    function migrateAll() external {
-        // check if msg.sender has deposits
-        require(depositsCounter[msg.sender] > 0, "No deposits for this address");
-
-        uint amountToWithdraw;
-        // check all deposit for msg.sender
-        for (uint256 depositId = 1; depositId <= depositsCounter[msg.sender]; depositId++) {
-            // get amount to withdraw
-            uint256 totalAmount = deposits[msg.sender][depositId].sumInWeiDeposited;
-            uint256 paidAmount = deposits[msg.sender][depositId].sumPaidAlready;
-            amountToWithdraw = amountToWithdraw + (totalAmount - paidAmount);
-
-            // delete deposit from beneficiary
-            delete deposits[msg.sender][depositId];
-            emit DepositMigrated(msg.sender, migrator, totalAmount - paidAmount, depositId, block.timestamp);
+        if (depositsCounter[_beneficiaryAddress] > 0) {
+            for (uint256 depositId = 1; depositId <= depositsCounter[_beneficiaryAddress]; depositId ++) {
+                uint256 remainingForThisDeposit = deposits[_beneficiaryAddress][depositId].sumInWeiDeposited - deposits[_beneficiaryAddress][depositId].sumPaidAlready;
+                totalRemaining = totalRemaining + remainingForThisDeposit;
+            }
         }
-
-        // transfer locked and unlocked funds to migrator
-        (bool sent,) = payable(migrator).call{value: amountToWithdraw}("");
-
-        require(sent, "Failed to send Ether");
-
-        // delete depositsCounter
-        delete depositsCounter[msg.sender];
-
-        emit MigratedSummary(msg.sender, migrator, amountToWithdraw, block.timestamp);
+        return totalRemaining;
     }
 
 }
