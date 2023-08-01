@@ -8,6 +8,7 @@ import '@openzeppelin/hardhat-upgrades';
 import "@nomiclabs/hardhat-etherscan";
 import 'solidity-docgen';
 import "hardhat-gas-reporter";
+require('dotenv').config()
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -37,7 +38,8 @@ const config: HardhatUserConfig = { // << https://github.com/dethcrypto/TypeChai
       url: "http://127.0.0.1:8545/",
     },
     haqqtestnet: {
-      url: 'http://34.141.17.195:8545',
+      url: 'https://rpc.eth.testedge2.haqq.network/',
+      accounts: ['0x' + process.env.PRIVATE_KEY],
     },
     haqqmainnet: {
       url: 'https://rpc.eth.haqq.network',

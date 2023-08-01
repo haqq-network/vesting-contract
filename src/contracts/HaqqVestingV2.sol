@@ -18,7 +18,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 * Any address can make a deposit, and any address can trigger next payment to beneficiary.
 * There can be many deposits for the same beneficiary address.
 */
-contract HaqqVesting is ReentrancyGuardUpgradeable {
+contract HaqqVestingV2 is ReentrancyGuardUpgradeable {
 
     /// @dev number of payments to be made to repay a deposit to beneficiary
     uint256 public constant NUMBER_OF_PAYMENTS = 24;
@@ -197,6 +197,19 @@ contract HaqqVesting is ReentrancyGuardUpgradeable {
         }
         depositsCounter[_newBeneficiaryAddress] = depositsCounter[msg.sender];
         delete depositsCounter[msg.sender];
+    }
+
+    /// @dev Returns the total amount of tokens remaining for withdrawal from all deposits for a given address
+    function calculateTotalRemainingForAllDeposits(address _beneficiaryAddress) external view returns (uint256){
+        uint256 totalRemaining = 0;
+
+        if (depositsCounter[_beneficiaryAddress] > 0) {
+            for (uint256 depositId = 1; depositId <= depositsCounter[_beneficiaryAddress]; depositId ++) {
+                uint256 remainingForThisDeposit = deposits[_beneficiaryAddress][depositId].sumInWeiDeposited - deposits[_beneficiaryAddress][depositId].sumPaidAlready;
+                totalRemaining = totalRemaining + remainingForThisDeposit;
+            }
+        }
+        return totalRemaining;
     }
 
 }
