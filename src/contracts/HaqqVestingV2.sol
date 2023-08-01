@@ -199,7 +199,6 @@ contract HaqqVestingV2 is ReentrancyGuardUpgradeable {
         delete depositsCounter[msg.sender];
     }
 
-    // TODO: NEW UPDATE
     /// @dev Returns the total amount of tokens remaining for withdrawal from all deposits for a given address
     function calculateTotalRemainingForAllDeposits(address _beneficiaryAddress) external view returns (uint256){
         uint256 totalRemaining = 0;
