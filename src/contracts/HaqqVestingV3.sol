@@ -81,10 +81,9 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         );
 
         // add to index new key
-        // TODO: return back!
-//        if (!contains(_beneficiaryAddress)) {
-//            keyArray.push(_beneficiaryAddress);
-//        }
+        if (!contains(_beneficiaryAddress)) {
+            keyArray.push(_beneficiaryAddress);
+        }
 
         return true;
     }

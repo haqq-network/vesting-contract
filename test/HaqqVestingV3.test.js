@@ -19,58 +19,45 @@ describe("HaqqVestingV3", function () {
     });
 
     describe("initializer", () => {
-        // it("should calculate return all deposits", async function () {
-        //     // create two deposits
-        //     await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-        //     await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
-        //
-        //     // check indexSize
-        //     expect(await haqqVesting.indexSize()).to.equal(1);
-        //
-        //     // create index, should be reverted with reason string 'keyArray is already initialized'
-        //     await expect(haqqVesting.connect(owner).createIndex([addr1.address])).to.be.revertedWith('keyArray is already initialized');
-        //
-        //     // call getAllDeposits
-        //     const allDeposits = await haqqVesting.getAllDeposits();
-        //
-        //     // [
-        //     //   [
-        //     //     '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        //     //     BigNumber { value: "1754922168" },
-        //     //     BigNumber { value: "1000000000000000000" },
-        //     //     BigNumber { value: "41666666666666666" },
-        //     //     BigNumber { value: "958333333333333334" },
-        //     //     owner: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        //     //     timestamp: BigNumber { value: "1754922168" },
-        //     //     sumInWeiDeposited: BigNumber { value: "1000000000000000000" },
-        //     //     sumPaidAlready: BigNumber { value: "41666666666666666" },
-        //     //     sumLeftToPay: BigNumber { value: "958333333333333334" }
-        //     //   ],
-        //     //   [
-        //     //     '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        //     //     BigNumber { value: "1754922169" },
-        //     //     BigNumber { value: "1000000000000000000" },
-        //     //     BigNumber { value: "41666666666666666" },
-        //     //     BigNumber { value: "958333333333333334" },
-        //     //     owner: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        //     //     timestamp: BigNumber { value: "1754922169" },
-        //     //     sumInWeiDeposited: BigNumber { value: "1000000000000000000" },
-        //     //     sumPaidAlready: BigNumber { value: "41666666666666666" },
-        //     //     sumLeftToPay: BigNumber { value: "958333333333333334" }
-        //     //   ]
-        //     // ]
-        //
-        //     // check return values
-        //     expect(allDeposits[0].owner).to.equal(addr1.address);
-        //     expect(allDeposits[0].sumInWeiDeposited).to.equal(ethers.utils.parseEther("1"));
-        //     expect(allDeposits[0].sumPaidAlready).to.equal(ethers.utils.parseEther("0.041666666666666666"));
-        //     expect(allDeposits[0].sumLeftToPay).to.equal(ethers.utils.parseEther("0.958333333333333334"));
-        //
-        //     expect(allDeposits[1].owner).to.equal(addr1.address);
-        //     expect(allDeposits[1].sumInWeiDeposited).to.equal(ethers.utils.parseEther("1"));
-        //     expect(allDeposits[1].sumPaidAlready).to.equal(ethers.utils.parseEther("0.041666666666666666"));
-        //     expect(allDeposits[1].sumLeftToPay).to.equal(ethers.utils.parseEther("0.958333333333333334"));
-        // });
+        it("should calculate return all deposits", async function () {
+            // create two deposits
+            await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
+            await haqqVesting.connect(owner).deposit(addr1.address, {value: ethers.utils.parseEther("1")});
+
+            // check indexSize
+            expect(await haqqVesting.indexSize()).to.equal(1);
+
+            // create index, should be reverted with reason string 'keyArray is already initialized'
+            await expect(haqqVesting.connect(owner).createIndex([addr1.address])).to.be.revertedWith('keyArray is already initialized');
+
+            // call getAllDeposits
+            const allDeposits = await haqqVesting.getAllDeposits();
+
+            // [
+            //   [
+            //     '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+            //     BigNumber { value: "1754922168" },
+            //     BigNumber { value: "1000000000000000000" },
+            //     BigNumber { value: "41666666666666666" },
+            //     BigNumber { value: "958333333333333334" },
+            //     owner: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+            //     timestamp: BigNumber { value: "1754922168" },
+            //     sumInWeiDeposited: BigNumber { value: "1000000000000000000" },
+            //     sumPaidAlready: BigNumber { value: "41666666666666666" },
+            //     sumLeftToPay: BigNumber { value: "958333333333333334" }
+            //   ]
+
+            // check return values
+            expect(allDeposits[0].owner).to.equal(addr1.address);
+            expect(allDeposits[0].sumInWeiDeposited).to.equal(ethers.utils.parseEther("1"));
+            expect(allDeposits[0].sumPaidAlready).to.equal(ethers.utils.parseEther("0.041666666666666666"));
+            expect(allDeposits[0].sumLeftToPay).to.equal(ethers.utils.parseEther("0.958333333333333334"));
+
+            expect(allDeposits[1].owner).to.equal(addr1.address);
+            expect(allDeposits[1].sumInWeiDeposited).to.equal(ethers.utils.parseEther("1"));
+            expect(allDeposits[1].sumPaidAlready).to.equal(ethers.utils.parseEther("0.041666666666666666"));
+            expect(allDeposits[1].sumLeftToPay).to.equal(ethers.utils.parseEther("0.958333333333333334"));
+        });
 
         it("should add depositors and calculate return all deposits", async function () {
             // create two deposits
