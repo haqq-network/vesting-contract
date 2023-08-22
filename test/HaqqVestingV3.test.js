@@ -6,6 +6,8 @@ chai.use(solidity);
 
 const contractName = 'HaqqVestingV3';
 
+const proxyAbi = [{"type":"event","name":"OwnershipTransferred","inputs":[{"type":"address","name":"previousOwner","internalType":"address","indexed":true},{"type":"address","name":"newOwner","internalType":"address","indexed":true}],"anonymous":false},{"type":"function","stateMutability":"nonpayable","outputs":[],"name":"changeProxyAdmin","inputs":[{"type":"address","name":"proxy","internalType":"contract TransparentUpgradeableProxy"},{"type":"address","name":"newAdmin","internalType":"address"}]},{"type":"function","stateMutability":"view","outputs":[{"type":"address","name":"","internalType":"address"}],"name":"getProxyAdmin","inputs":[{"type":"address","name":"proxy","internalType":"contract TransparentUpgradeableProxy"}]},{"type":"function","stateMutability":"view","outputs":[{"type":"address","name":"","internalType":"address"}],"name":"getProxyImplementation","inputs":[{"type":"address","name":"proxy","internalType":"contract TransparentUpgradeableProxy"}]},{"type":"function","stateMutability":"view","outputs":[{"type":"address","name":"","internalType":"address"}],"name":"owner","inputs":[]},{"type":"function","stateMutability":"nonpayable","outputs":[],"name":"renounceOwnership","inputs":[]},{"type":"function","stateMutability":"nonpayable","outputs":[],"name":"transferOwnership","inputs":[{"type":"address","name":"newOwner","internalType":"address"}]},{"type":"function","stateMutability":"nonpayable","outputs":[],"name":"upgrade","inputs":[{"type":"address","name":"proxy","internalType":"contract TransparentUpgradeableProxy"},{"type":"address","name":"implementation","internalType":"address"}]},{"type":"function","stateMutability":"payable","outputs":[],"name":"upgradeAndCall","inputs":[{"type":"address","name":"proxy","internalType":"contract TransparentUpgradeableProxy"},{"type":"address","name":"implementation","internalType":"address"},{"type":"bytes","name":"data","internalType":"bytes"}]}];
+
 describe("HaqqVestingV3", function () {
     let HaqqVestingV2, haqqVesting, owner, addr1;
 
@@ -81,6 +83,46 @@ describe("HaqqVestingV3", function () {
                 expect(allDeposits[i].sumPaidAlready).to.equal(ethers.utils.parseEther("0.041666666666666666"));
                 expect(allDeposits[i].sumLeftToPay).to.equal(ethers.utils.parseEther("0.958333333333333334"));
             }
+        });
+
+        it("forked test", async function () {
+            const impersonatedSigner = await ethers.getImpersonatedSigner("0x566d3e3b9f8d1fd8ae012c3d260527714f91b3a3");
+
+            // upgrade contract calling proxy admin
+            const proxyAdmin = await ethers.getContractAt(proxyAbi, "0x29876c4A2D095A9eBBE8fD1D8432C5c7f6f9DE35");
+            const proxyAddress = "0x1ba8624B418BFfaA93c369B0841204a9d50fA4D5";
+            const implAddress = "0xc64A5D409702D31F9548D38B5158EF06D04C7b98";
+
+            // check is impersonatedSigner is admin of proxyAdmin
+            const proxyAdminOwner = await proxyAdmin.owner();
+            expect(proxyAdminOwner.toLowerCase()).to.equal("0x566d3e3b9f8d1fd8ae012c3d260527714f91b3a3");
+
+            await proxyAdmin.connect(impersonatedSigner).upgrade(proxyAddress, implAddress);
+
+            // check implementation address
+            const implementationAddress = await proxyAdmin.getProxyImplementation(proxyAddress);
+            expect(implementationAddress).to.equal(implAddress);
+
+            const HaqqVestingV3 = await ethers.getContractFactory("HaqqVestingV3");
+            const haqqVesting = HaqqVestingV3.attach(proxyAddress);
+
+
+            // check indexSize
+            expect(await haqqVesting.indexSize()).to.equal(0);
+            console.log("indexSize", await haqqVesting.indexSize());
+
+            // create index, should be reverted with reason string 'keyArray is already initialized'
+            const tx = await haqqVesting.connect(addr1).createIndex(depositors);
+            const receipt = await tx.wait();
+            console.log("receipt",receipt);
+
+            // call getAllDeposits
+            const allDeposits = await haqqVesting.getAllDeposits();
+
+            console.log("allDeposits.length",allDeposits.length);
+
+            // check keyArray length
+            expect(await haqqVesting.indexSize()).to.equal(depositors.length);
         });
     });
 });

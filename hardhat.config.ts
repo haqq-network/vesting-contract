@@ -33,7 +33,11 @@ const config: HardhatUserConfig = { // << https://github.com/dethcrypto/TypeChai
     },
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      forking: {
+        url: "https://rpc.eth.haqq.network",
+      }
+    },
     loc: {
       url: "http://127.0.0.1:8545/",
     },
