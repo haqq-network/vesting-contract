@@ -81,9 +81,10 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         );
 
         // add to index new key
-        if (!contains(_beneficiaryAddress)) {
-            keyArray.push(_beneficiaryAddress);
-        }
+        // TODO: return back!
+//        if (!contains(_beneficiaryAddress)) {
+//            keyArray.push(_beneficiaryAddress);
+//        }
 
         return true;
     }
@@ -227,23 +228,27 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         return totalRemaining;
     }
 
-    function contains(address _key) public view returns (bool) {
+    /// @dev Returns if the key exists in the keyArray array
+    /// @param _beneficiaryAddress address to check
+    function contains(address _beneficiaryAddress) public view returns (bool) {
         // let's check if the key exists in the keyArray array
         for (uint256 i = 0; i < keyArray.length; i++) {
-            if (keyArray[i] == _key) {return true;}
+            if (keyArray[i] == _beneficiaryAddress) {return true;}
         }
 
         // if we reach here, then the key doesn't exist
         return false;
     }
 
-    function removeKey(address _key) private returns (bool) {
-        if (!contains(_key)) {return false;}
+    /// @dev Removes a key from the keyArray array
+    /// @param _beneficiaryAddress address to remove
+    function removeKey(address _beneficiaryAddress) private returns (bool) {
+        if (!contains(_beneficiaryAddress)) {return false;}
         // create a new keyArray array, remove key from it, and set it as the new keyArray array
         address[] memory newkeyArray = new address[](keyArray.length - 1);
         uint256 j = 0;
         for (uint256 i = 0; i < keyArray.length; i++) {
-            if (keyArray[i] != _key) {
+            if (keyArray[i] != _beneficiaryAddress) {
                 newkeyArray[j] = keyArray[i];
                 j++;
             }
@@ -254,14 +259,13 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         return true;
     }
 
-    /**
-     * Return the size of the indexed array
-     */
-    function size() public view returns (uint256) {
+    /// @dev Returns the size of the keyArray array
+    function indexSize() public view returns (uint256) {
         return keyArray.length;
     }
 
-    function keys() public view returns (address[] memory) {
+    /// @dev Returns all keys in the keyArray array
+    function indexKeys() public view returns (address[] memory) {
         return keyArray;
     }
 
@@ -273,6 +277,7 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         uint256 sumLeftToPay;
     }
 
+    /// @dev Returns all deposits for all addresses
     function getAllDeposits() external view returns (ExtendedDeposit[] memory allDeposits) {
         uint256 totalDepositsCount = 0;
 
@@ -305,7 +310,8 @@ contract HaqqVestingV3 is ReentrancyGuardUpgradeable {
         return allDeposits;
     }
 
-    // initialize keyArray with depositors only one time
+    /// @dev Creates an index of all addresses that have made deposits
+    /// @param depositors The list of addresses to index
     function createIndex(address[] calldata depositors) external {
         require(keyArray.length == 0, "keyArray is already initialized");
         for (uint256 i = 0; i < depositors.length; i++) {
